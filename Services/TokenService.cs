@@ -22,7 +22,7 @@ public class TokenService : ITokensService
     }
 
 
-    public string GenerateToken(User user)
+    public string GenerateAccessToken(User user)
     {
         if (user == null || string.IsNullOrEmpty(user.Id) || string.IsNullOrEmpty(user.Email) || string.IsNullOrEmpty(user.Username))
         {

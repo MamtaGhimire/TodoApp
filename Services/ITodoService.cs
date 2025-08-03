@@ -1,13 +1,16 @@
 using TodoApp.Models;
 using TodoApp.DTOs;
+using TodoApp.Helpers;
 
 namespace TodoApp.Services
 {
-    public interface ITodoService
+      public interface ITodoService
     {
-        Task<List<Todo>> GetTodosAsync(string userId);
-        Task<Todo> CreateTodoAsync(CreateTodoDto dto, string userId);
-        Task<Todo> UpdateTodoAsync(string id, UpdateTodoDto dto, string userId);
-        Task<bool> DeleteTodoAsync(string id, string userId);
+        Task<ServiceResponse<Todo>> CreateTodoAsync(CreateTodoDto dto);
+        Task<ServiceResponse<List<Todo>>> GetTodosAsync();
+        Task<ServiceResponse<Todo>> UpdateTodoAsync(string id, UpdateTodoDto dto);
+        Task<ServiceResponse<string>> DeleteTodoAsync(string id);
     }
 }
+
+    

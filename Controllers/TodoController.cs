@@ -11,18 +11,20 @@ namespace TodoApp.Controllers;
 public class TodoController : ControllerBase
 {
     private readonly TodoService _todoService;
-
+    
     public TodoController(TodoService todoService)
     {
         _todoService = todoService;
     }
 
-    [HttpPost]
-    public async Task<IActionResult> CreateTodo([FromBody] CreateTodoDto dto)
-    {
-        var result = await _todoService.CreateTodoAsync(dto);
-        return Ok(result);
-    }
+[HttpPost]
+[Authorize]
+public async Task<IActionResult> CreateTodos([FromBody] CreateTodoDto dto)
+{
+    var result = await _todoService.CreateTodoAsync(dto);
+    return Ok(result);
+}
+
 
     [HttpPut("{id}")]
     public async Task<IActionResult> UpdateTodo(string id, [FromBody] UpdateTodoDto dto)
@@ -39,10 +41,12 @@ public class TodoController : ControllerBase
 
     }
 
-    [HttpGet("{id}")]
-    public async Task<IActionResult> GetTodoById(string id)
-    {
-        var result = await _todoService.GetTodoByIdAsync(id);
-        return Ok(result);
-    }
+    [HttpGet]
+[Authorize]
+public async Task<IActionResult> GetTodos()
+{
+    var result = await _todoService.GetTodosAsync();
+    return Ok(result);
+}
+
 }

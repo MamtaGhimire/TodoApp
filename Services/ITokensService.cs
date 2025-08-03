@@ -4,6 +4,6 @@ namespace TodoApp.Services;
 
 public interface ITokensService
 {
-    string GenerateToken(User user);
-    string CreateRefreshToken();
+    string GenerateAccessToken(User user);
+    string GenerateRefreshToken();
 }

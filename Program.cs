@@ -8,6 +8,7 @@ using FluentValidation;
 using FluentValidation.AspNetCore;
 using TodoApp.Config;
 using MongoDB.Driver;
+using TodoApp.Repositories;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -30,12 +31,20 @@ builder.Services.AddScoped<IMongoDatabase>(sp =>
     return client.GetDatabase(settings.DatabaseName);
 });
 
+builder.Services.AddScoped<ITodoRepository, TodoRepository>();
+builder.Services.AddScoped<IUserRepository, UserRepository>();
+
+
+
 
 //  DEPENDENCY INJECTION FOR SERVICES
 builder.Services.AddScoped<UserService>();
 builder.Services.AddScoped<TodoService>();
 builder.Services.AddScoped<TokenService>();
 builder.Services.AddScoped<ITokensService, TokenService>();
+builder.Services.AddScoped<IUserService, UserService>();
+
+
 
 
 //  FLUENT VALIDATION SETUP

@@ -1,72 +1,138 @@
-using TodoApp.Models;
+using System.Security.Claims;
 using TodoApp.DTOs;
-using TodoApp.Validators;
-using MongoDB.Driver;
+using TodoApp.Models;
+using TodoApp.Repositories;
 using TodoApp.Helpers;
+using TodoApp.Services;
 
-namespace TodoApp.Services;
 
-public class TodoService
+
+namespace TodoApp.Services
 {
-    private readonly IMongoCollection<Todo> _todos;
-
-    public TodoService(IMongoDatabase database)
+    public class TodoService : ITodoService
     {
-        _todos = database.GetCollection<Todo>("Todos");
-    }
+        private readonly ITodoRepository _todoRepository;
+        private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly ILogger<TodoService> _logger;
 
-    public async Task<Todo> CreateTodoAsync(CreateTodoDto dto)
-    {
-        var todo = new Todo
+        public TodoService(ITodoRepository todoRepository, IHttpContextAccessor httpContextAccessor, ILogger<TodoService> logger)
         {
-            Title = dto.Title,
-            Description = dto.Description,
-            Status = dto.Status,
-            DueDate = dto.DueDate,
-            CreatedAt = DateTime.UtcNow
-        };
+            _todoRepository = todoRepository;
+            _httpContextAccessor = httpContextAccessor;
+            _logger = logger;
+        }
 
-        await _todos.InsertOneAsync(todo);
-        return todo;
-    }
-
-    public async Task<ServiceResponse<Todo>> UpdateTodoAsync(string id, UpdateTodoDto dto)
-    {
-        var response = new ServiceResponse<Todo>();
-
-        var todo = await _todos.Find(t => t.Id == id).FirstOrDefaultAsync();
-        if (todo == null)
+        private string? GetUserId()
         {
-            response.IsSuccess = false;
-            response.ErrorMessage = "Todo not found";
+            return _httpContextAccessor.HttpContext?.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        }
+
+        public async Task<ServiceResponse<Todo>> CreateTodoAsync(CreateTodoDto dto)
+        {
+            var response = new ServiceResponse<Todo>();
+            var userId = GetUserId();
+
+            if (string.IsNullOrEmpty(userId))
+            {
+                response.IsSuccess = false;
+                response.ErrorMessage = "Unauthorized";
+                return response;
+            }
+
+            var todo = new Todo
+            {
+                Title = dto.Title,
+                Description = dto.Description,
+                Status = dto.Status,
+                DueDate = dto.DueDate,
+                CreatedAt = DateTime.UtcNow,
+                UserId = userId
+            };
+
+            await _todoRepository.AddTodoAsync(todo);
+            response.Data = todo;
+            response.Message = "Todo created successfully";
             return response;
         }
 
-        todo.Title = dto.Title;
-        todo.Description = dto.Description;
-        todo.Status = dto.Status;
-        todo.DueDate = dto.DueDate;
+        public async Task<ServiceResponse<List<Todo>>> GetTodosAsync()
+        {
+            var response = new ServiceResponse<List<Todo>>();
+            var userId = GetUserId();
 
-        await _todos.ReplaceOneAsync(t => t.Id == id, todo);
+            if (string.IsNullOrEmpty(userId))
+            {
+                response.IsSuccess = false;
+                response.ErrorMessage = "User not authenticated.";
+                return response;
+            }
 
-        response.Data = todo;
-        response.Message = "Todo updated successfully";
-        return response;
-    }
+            var todos = await _todoRepository.GetUserTodosAsync(userId);
+            response.Data = todos;
+            return response;
+        }
 
-    public async Task<bool> DeleteTodoAsync(string id)
-    {
-        var result = await _todos.DeleteOneAsync(t => t.Id == id);
-        return result.DeletedCount > 0;
-    }
+        public async Task<ServiceResponse<Todo>> UpdateTodoAsync(string id, UpdateTodoDto dto)
+        {
+            var response = new ServiceResponse<Todo>();
+            var userId = GetUserId();
 
-    public async Task<List<Todo>> GetAllTodosAsync()
-    {
-        return await _todos.Find(_ => true).ToListAsync();
-    }
+            if (string.IsNullOrEmpty(userId))
+            {
+                response.IsSuccess = false;
+                response.ErrorMessage = "Unauthorized";
+                return response;
+            }
 
-    public async Task<Todo?> GetTodoByIdAsync(string id)
-    {
-        return await _todos.Find(t => t.Id == id).FirstOrDefaultAsync();
+            var todo = await _todoRepository.GetTodoByIdAsync(id, userId);
+            if (todo == null)
+            {
+                response.IsSuccess = false;
+                response.ErrorMessage = "Todo not found or access denied";
+                return response;
+            }
+
+            todo.Title = dto.Title;
+            todo.Description = dto.Description;
+            todo.Status = dto.Status;
+            todo.DueDate = dto.DueDate;
+
+            var updated = await _todoRepository.UpdateTodoAsync(todo, userId);
+            if (!updated)
+            {
+                response.IsSuccess = false;
+                response.ErrorMessage = "Failed to update todo";
+                return response;
+            }
+
+            response.Data = todo;
+            response.Message = "Todo updated successfully";
+            return response;
+        }
+
+        public async Task<ServiceResponse<string>> DeleteTodoAsync(string id)
+        {
+            var response = new ServiceResponse<string>();
+            var userId = GetUserId();
+
+            if (string.IsNullOrEmpty(userId))
+            {
+                response.IsSuccess = false;
+                response.ErrorMessage = "Unauthorized";
+                return response;
+            }
+
+            var deleted = await _todoRepository.DeleteTodoAsync(id, userId);
+            if (!deleted)
+            {
+                response.IsSuccess = false;
+                response.ErrorMessage = "Todo not found or access denied";
+                return response;
+            }
+
+            response.Data = id;
+            response.Message = "Todo deleted successfully";
+            return response;
+        }
     }
 }
