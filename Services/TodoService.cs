@@ -3,7 +3,9 @@ using TodoApp.DTOs;
 using TodoApp.Models;
 using TodoApp.Repositories;
 using TodoApp.Helpers;
+
 using TodoApp.Services;
+using AutoMapper;
 
 
 
@@ -14,17 +16,20 @@ namespace TodoApp.Services
         private readonly ITodoRepository _todoRepository;
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly ILogger<TodoService> _logger;
+        private readonly IMapper _mapper;
 
-        public TodoService(ITodoRepository todoRepository, IHttpContextAccessor httpContextAccessor, ILogger<TodoService> logger)
+        public TodoService(ITodoRepository todoRepository, IHttpContextAccessor httpContextAccessor, ILogger<TodoService> logger, IMapper mapper)
         {
             _todoRepository = todoRepository;
             _httpContextAccessor = httpContextAccessor;
             _logger = logger;
+            _mapper = mapper;
         }
 
         private string? GetUserId()
         {
-            return _httpContextAccessor.HttpContext?.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            return _httpContextAccessor.HttpContext?.User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+            ?? throw new Exception("User ID not found in token");
         }
 
         public async Task<ServiceResponse<Todo>> CreateTodoAsync(CreateTodoDto dto)
@@ -134,5 +139,108 @@ namespace TodoApp.Services
             response.Message = "Todo deleted successfully";
             return response;
         }
+
+        public async Task<ServiceResponse<string>> AdminDeleteTodoAsync(string id)
+        {
+            var todo = await _todoRepository.GetTodoByIdAsync(id);
+            if (todo == null)
+            {
+                return new ServiceResponse<string>
+                {
+                    IsSuccess = false,
+                    Message = "Todo not found"
+                };
+            }
+
+            await _todoRepository.DeleteTodoByIdAsync(id);
+            return new ServiceResponse<string>
+            {
+                Data = id,
+                Message = "Todo deleted by admin"
+            };
+        }
+
+        public async Task<ServiceResponse<List<TodoResponseDto>>> GetAllTodosAsync(int page, int pageSize, string? status, string? sortBy)
+        {
+            var allTodos = await _todoRepository.GetAllTodosAsync();
+
+            // Filtering by status
+            if (!string.IsNullOrEmpty(status))
+            {
+                allTodos = allTodos.Where(t => t.Status.ToLower() == status.ToLower()).ToList();
+            }
+
+            // Sorting by due date or title
+            if (!string.IsNullOrEmpty(sortBy))
+            {
+                allTodos = sortBy.ToLower() switch
+                {
+                    "duedate" => allTodos.OrderBy(t => t.DueDate).ToList(),
+                    "title" => allTodos.OrderBy(t => t.Title).ToList(),
+                    _ => allTodos
+                };
+            }
+
+            // Pagination
+            var pagedTodos = allTodos
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToList();
+
+            var mapped = _mapper.Map<List<TodoResponseDto>>(pagedTodos);
+
+            return new ServiceResponse<List<TodoResponseDto>>
+            {
+                Data = mapped,
+                Message = $"Page {page} with {pageSize} items per page"
+            };
+        }
+
+        public async Task<ServiceResponse<List<TodoResponseDto>>> GetMyTodosAsync(
+    int page, int pageSize, string? status, string? sortBy)
+        {
+            string? userId = _httpContextAccessor.HttpContext?.User?
+                .FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (string.IsNullOrEmpty(userId))
+            {
+                throw new Exception("User ID not found in context");
+            }
+
+            var allTodos = await _todoRepository.GetTodosByUserAsync(userId);
+
+            // Filtering
+            if (!string.IsNullOrEmpty(status))
+                allTodos = allTodos.Where(t => t.Status == status).ToList();
+
+            //  Sorting
+            allTodos = sortBy switch
+            {
+                "title" => allTodos.OrderBy(t => t.Title).ToList(),
+                "dueDate" => allTodos.OrderBy(t => t.DueDate).ToList(),
+                _ => allTodos
+            };
+
+            // Pagination
+            var paginated = allTodos
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToList();
+
+            var response = _mapper.Map<List<TodoResponseDto>>(paginated);
+
+            return new ServiceResponse<List<TodoResponseDto>>
+            {
+                Data = response,
+                Message = "User's todos fetched successfully"
+            };
+        }
+       
+        public async Task<List<Todo>> GetTodosByUserAsync(string userId)
+        {
+            return await _todoRepository.GetTodosByUserAsync(userId);
+        }
+
+
     }
 }

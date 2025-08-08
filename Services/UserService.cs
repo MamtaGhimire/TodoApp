@@ -44,8 +44,22 @@ namespace TodoApp.Services
                 FullName = request.Name ?? "Anonymous",
                 Username = request.Username ?? "guest",
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
-                IsVerified = false
+                IsVerified = false,
+                Role = request.Role ?? "User"
             };
+            // Generate 6-digit OTP
+
+            var otp = new Random().Next(100000, 999999).ToString();
+
+            user.OtpCode = otp;
+
+
+            user.OtpExpiryTime = DateTime.UtcNow.AddMinutes(10);
+
+
+            // Log OTP (just for development/testing)
+            _logger.LogInformation("OTP for {Email} is: {OtpCode}", user.Email, otp);
+
 
             await _userRepository.CreateUserAsync(user);
             _logger.LogInformation("New user registered: {Email}", user.Email);
@@ -122,17 +136,33 @@ namespace TodoApp.Services
             };
         }
 
-        public async Task<ServiceResponse<string>> SendOtpAsync(string email)
+       public async Task<ServiceResponse<string>> SendOtpAsync(string email)
+{
+    var user = await _userRepository.GetUserByEmailAsync(email);
+    if (user == null)
+    {
+        return new ServiceResponse<string>
         {
-            await Task.CompletedTask;
-            _logger.LogInformation("OTP sent to: {Email}", email);
+            IsSuccess = false,
+            ErrorMessage = "User not found"
+        };
+    }
 
-            return new ServiceResponse<string>
-            {
-                IsSuccess = true,
-                Data = "OTP sent to email"
-            };
-        }
+    var otp = new Random().Next(100000, 999999).ToString();
+    user.OtpCode = otp;
+    user.OtpExpiryTime = DateTime.UtcNow.AddMinutes(10);
+
+    await _userRepository.UpdateUserAsync(user);
+
+    _logger.LogInformation("OTP for {Email} is: {OtpCode}", user.Email, otp);
+
+    return new ServiceResponse<string>
+    {
+        IsSuccess = true,
+        Data = "OTP sent to email"
+    };
+}
+
 
         public async Task<ServiceResponse<string>> VerifyOtpAsync(string email, string otpCode)
         {

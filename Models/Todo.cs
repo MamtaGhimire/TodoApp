@@ -16,6 +16,7 @@ public class Todo : NewBaseType
     public string UserId { get; set; } = null!;
     public string Title { get; set; } = null!;
     public string Description { get; set; } = null!;
-    public string Status { get; set; } = "Pending"; 
+    public string Status { get; set; } = "Pending";
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-    }
+
+}

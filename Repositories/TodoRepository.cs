@@ -8,10 +8,13 @@ namespace TodoApp.Repositories
     public class TodoRepository : ITodoRepository
     {
         private readonly IMongoCollection<Todo> _todos;
+        private readonly IMongoCollection<Todo> _todoCollection;
+
 
         public TodoRepository(IMongoDatabase database)
         {
             _todos = database.GetCollection<Todo>("Todos");
+            _todoCollection = database.GetCollection<Todo>("Todos");
         }
 
         public async Task<List<Todo>> GetUserTodosAsync(string userId)
@@ -44,5 +47,30 @@ namespace TodoApp.Repositories
             var result = await _todos.DeleteOneAsync(t => t.Id == id && t.UserId == userId);
             return result.DeletedCount > 0;
         }
+        public async Task<List<Todo>> GetAllTodosAsync()
+
+        {
+            return await _todoCollection.Find(_ => true).ToListAsync();
+
+        }
+
+
+        public async Task<Todo?> GetTodoByIdAsync(string id)
+        {
+            return await _todoCollection.Find(t => t.Id == id).FirstOrDefaultAsync();
+        }
+
+
+        public async Task DeleteTodoByIdAsync(string id)
+        {
+            await _todoCollection.DeleteOneAsync(t => t.Id == id);
+        }
+
+
+        public async Task<List<Todo>> GetTodosByUserAsync(string userId)
+        {
+            return await _todoCollection.Find(t => t.UserId == userId).ToListAsync();
+        }
+
     }
 }

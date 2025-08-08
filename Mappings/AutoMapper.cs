@@ -2,10 +2,14 @@ using AutoMapper;
 using TodoApp.Models;
 using TodoApp.DTOs;
 
-public class AutoMapperProfile : Profile
+namespace TodoApp.Mappings
 {
-    public AutoMapperProfile()
+    public class AutoMapperProfile : Profile
     {
-        CreateMap<User, UserResponseDto>();
+        public AutoMapperProfile()
+        {
+            CreateMap<User, UserResponseDto>();
+            CreateMap < Todo, TodoResponseDto>();
+        }
     }
 }

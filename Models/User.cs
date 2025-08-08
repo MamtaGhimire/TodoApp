@@ -17,7 +17,14 @@ namespace TodoApp.Models
         public string? OtpCode { get; set; }
         public DateTime? OtpExpiry { get; set; }
         public string RefreshToken { get; set; } = null!;
-     public DateTime RefreshTokenExpiryTime { get; set; }
+        public DateTime RefreshTokenExpiryTime { get; set; }
+        public string Role { get; set; } = "User"; // default to User
+        public DateTime? OtpExpiryTime { get; set; }
+        public string? ProfilePicturePath { get; set; }
+
+
+
+
 
 
     }

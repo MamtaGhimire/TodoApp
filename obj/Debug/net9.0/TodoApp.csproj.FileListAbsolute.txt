@@ -64,3 +64,4 @@
 /Users/mamtaghimire/TodoApp/obj/Debug/net9.0/TodoApp.genruntimeconfig.cache
 /Users/mamtaghimire/TodoApp/obj/Debug/net9.0/ref/TodoApp.dll
 /Users/mamtaghimire/TodoApp/obj/Debug/net9.0/TodoApp.sourcelink.json
+/Users/mamtaghimire/TodoApp/bin/Debug/net9.0/TodoApp.staticwebassets.runtime.json

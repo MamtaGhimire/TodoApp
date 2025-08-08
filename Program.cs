@@ -9,6 +9,7 @@ using FluentValidation.AspNetCore;
 using TodoApp.Config;
 using MongoDB.Driver;
 using TodoApp.Repositories;
+using TodoApp.Mappings;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -109,7 +110,7 @@ builder.Services.AddSwaggerGen(c =>
 
 
 
-builder.Services.AddAutoMapper(typeof(Program));
+builder.Services.AddAutoMapper(typeof(AutoMapperProfile));
 
 builder.Services.Configure<JwtSettings>(
     builder.Configuration.GetSection("Jwt"));
@@ -127,9 +128,13 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+
+
 app.UseHttpsRedirection();
-app.UseAuthentication(); 
+app.UseAuthentication();
+app.UseMiddleware<ExceptionMiddleware>();
 app.UseAuthorization();
+app.UseStaticFiles();
 app.MapControllers();
 app.UseCors(x => x
     .AllowAnyOrigin()

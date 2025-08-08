@@ -9,5 +9,12 @@ namespace TodoApp.Repositories
         Task AddTodoAsync(Todo todo);
         Task<bool> UpdateTodoAsync(Todo todo, string userId);
         Task<bool> DeleteTodoAsync(string id, string userId);
+        Task<List<Todo>> GetAllTodosAsync();
+        Task<List<Todo>> GetTodosByUserAsync(string userId);
+
+        Task<Todo?> GetTodoByIdAsync(string id);
+
+        Task DeleteTodoByIdAsync(string id);
+
     }
 }
